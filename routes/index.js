@@ -6,7 +6,7 @@ router.use(bodyParser.json());
 
 router.route('/')
 .get((req, res, next)=> {
-    res.send('You need to signUp!');
+    res.send('You need to signUp or Login!');
 });
 
 module.exports = router;

@@ -9,6 +9,10 @@ const UserSchema = new Schema({
         type: String,
         default: ''
     },
+    email: {
+        type: String,
+        default: ''
+    },
     googleId: String,
     admin: {
         type: Boolean,

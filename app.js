@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const mongoose = require('mongoose');
 const passport = require('passport');
+const cookieSession = require("cookie-session");
 const url = 'mongodb://localhost:27017/todo';
 const connect = mongoose.connect(url, {
   useNewUrlParser: true,
@@ -26,25 +27,36 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-require('./authenticate');
+app.use(cookieSession({
+  // milliseconds of a day
+  name: "todo-session",
+  maxAge: 24*60*60*1000,
+  keys:['key1', 'key2']
+}));
 app.use(passport.initialize());
+app.use(passport.session());
+require('./authenticate');
 var indexRouter = require('./routes/index');
 app.use('/', indexRouter);
-/*app.get('/signup', passport.authenticate('google', { scope: ['profile'] }));
+var user;
+app.get('/signup', passport.authenticate('google', { scope: ['profile', 'email'] }));
 app.get('/login', (req, res)=> {res.send("You failed to login!");})
 app.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }),
-  function(req, res) {
-    // Successful authentication, redirect home.
-    res.redirect('/dashboard');
-  });
-  function auth(req, res, next) {
-    if(req.user) {
-      next();
-    } else {
-      res.redirect('/');
-    }
+function(req, res) {
+  user = req.user;
+  //console.log('req.user.id : ', req.user);
+  // Successful authentication, redirect home.
+  res.redirect('/dashboard');
+});
+function auth(req, res, next) {
+  //console.log('req.user.id : ', req);
+  if(user) {
+    next();
+  } else {
+    res.redirect('/');
   }
-  app.use(auth);*/
+}
+app.use(auth);
 var addRouter = require('./routes/addtoDo');
 var updateRouter = require('./routes/update');
 var doneRouter = require('./routes/completedTasks');
@@ -57,6 +69,13 @@ app.use('/update', updateRouter);
 app.use('/done', doneRouter);
 app.use('/undone', undoneRouter);
 app.use('/dashboard',dashRouter);
+
+app.get('/logout', (req, res)=> {
+  req.session = null;
+  req.logout();
+  mongoose.disconnect();
+  res.redirect('/');
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -72,12 +91,6 @@ app.use(function(err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.render('error');
-});
-
-app.get('/logout', (req, res)=> {
-  req.session = null;
-  req.logout();
-  req.redirect('/');
 });
 
 module.exports = app;
